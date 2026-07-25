@@ -12,6 +12,20 @@ extra files. importlib.import_module() has no such restriction, since it
 looks modules up by string name rather than parsing an identifier.
 """
 
+# Streamlit Cloud's Linux environment ships an older system sqlite3 than
+# Chroma requires (>= 3.35.0), which otherwise surfaces as a confusing
+# KeyError deep inside chromadb rather than a clear version error. This
+# swaps in a modern, self-contained sqlite3 build. pysqlite3-binary has
+# no Windows wheels (and isn't needed there, since Windows already ships
+# a new enough sqlite3), so this must run before chromadb is imported
+# anywhere, and must stay optional for local Windows development.
+try:
+    __import__("pysqlite3")
+    import sys as _sys
+    _sys.modules["sqlite3"] = _sys.modules.pop("pysqlite3")
+except ImportError:
+    pass
+
 import importlib
 import os
 import sys
@@ -34,13 +48,14 @@ rag = importlib.import_module("07_prompting")
 # (used when deployed). Wrapped in try/except since st.secrets raises if
 # no secrets.toml exists at all (e.g. running locally without one).
 try:
-    if not getattr(rag, "OPENROUTER_API_KEY", ""):
+    # Use setattr/getattr to avoid static analysis issues when assigning
+    # attributes on the dynamically imported module.
+    current_key = getattr(rag, "OPENROUTER_API_KEY", None)
+    if not current_key:
         setattr(rag, "OPENROUTER_API_KEY", st.secrets.get("OPENROUTER_API_KEY", ""))
-        setattr(
-            rag,
-            "OPENROUTER_MODEL",
-            st.secrets.get("OPENROUTER_MODEL", getattr(rag, "OPENROUTER_MODEL", "")),
-        )
+        # Preserve existing model value if present
+        current_model = getattr(rag, "OPENROUTER_MODEL", None)
+        setattr(rag, "OPENROUTER_MODEL", st.secrets.get("OPENROUTER_MODEL", current_model))
 except Exception:
     pass
 
@@ -82,8 +97,8 @@ def answer_question(book_key: str, query: str) -> dict:
 
 
 def main() -> None:
-    st.set_page_config(page_title="Book RAG Assistant", page_icon="📚")
-    st.title("📚 Book RAG Assistant")
+    st.set_page_config(page_title="Book Assistant", page_icon="📚")
+    st.title("📚 Book Assistant")
 
     with st.sidebar:
         st.header("Manage Books")
