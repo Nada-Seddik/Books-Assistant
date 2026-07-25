@@ -275,6 +275,11 @@ def main() -> None:
     st.markdown('<p class="eyebrow">Choose a Book</p>', unsafe_allow_html=True)
     book_key = st.selectbox("", indexed_books, label_visibility="collapsed")
 
+    # --- TEMPORARY DEBUG INFO (safe to remove once retrieval is confirmed working) ---
+    debug_collection = chroma_store.get_or_create_collection(book_key)
+    st.caption(f"🔧 debug: '{book_key}' collection has {debug_collection.count()} chunk(s) stored")
+    # --- end debug info ---
+
     st.markdown('<p class="eyebrow">Your Question</p>', unsafe_allow_html=True)
     query = st.text_input("", placeholder="What does this book say about...", label_visibility="collapsed")
 
@@ -285,6 +290,11 @@ def main() -> None:
             except Exception as e:
                 st.error(f"Could not generate an answer: {e}")
                 return
+
+        # --- TEMPORARY DEBUG INFO (safe to remove once retrieval is confirmed working) ---
+        with st.expander(f"🔧 debug: retrieved {len(result['context']['chunks'])} chunk(s) — click to see raw context"):
+            st.text(result["context"]["context_text"] or "(context_text is EMPTY)")
+        # --- end debug info ---
 
         sources = result["context"]["sources"]
         if sources:
