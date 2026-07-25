@@ -66,3 +66,8 @@ def build_store_for_book(book_key: str, chunks: list[dict], embeddings: list[lis
             for c in chunks
         ],
     )
+
+
+def delete_book(book_key: str) -> None:
+    """Remove a book's entire collection (chunks, embeddings, and description)."""
+    get_client().delete_collection(name=book_key)
