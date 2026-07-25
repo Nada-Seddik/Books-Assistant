@@ -167,6 +167,18 @@ section[data-testid="stSidebar"] h2 {
     border-radius: 999px;
 }
 
+/* Book description ("jacket blurb") */
+.blurb {
+    font-family: 'Lora', serif;
+    font-style: italic;
+    color: var(--ink);
+    background-color: var(--parchment-deep);
+    border-left: 3px solid var(--gold);
+    padding: 0.7rem 1rem;
+    border-radius: 0 4px 4px 0;
+    margin-bottom: 1rem;
+}
+
 /* Empty state */
 .empty-shelf {
     font-family: 'Lora', serif;
@@ -215,6 +227,15 @@ def index_book(book_name: str, uploaded_files) -> None:
 
     book_key = documents.normalize_book_name(book_name)
     chroma_store.build_store_for_book(book_key, chunks, embeddings)
+
+    try:
+        description = rag.generate_description(book_key, sample_text=docs[0]["text"])
+        chroma_store.set_description(book_key, description)
+    except Exception:
+        # Indexing itself succeeded; a missing/failed description isn't
+        # fatal — main() falls back to an on-demand "Generate description"
+        # button for books that end up without one.
+        pass
 
 
 def answer_question(book_key: str, query: str) -> dict:
@@ -274,6 +295,22 @@ def main() -> None:
 
     st.markdown('<p class="eyebrow">Choose a Book</p>', unsafe_allow_html=True)
     book_key = st.selectbox("", indexed_books, label_visibility="collapsed")
+
+    description = chroma_store.get_description(book_key)
+    if description:
+        st.markdown(f'<div class="blurb">{description}</div>', unsafe_allow_html=True)
+    else:
+        if st.button("Generate description", key="gen_description"):
+            with st.spinner("Reading the opening pages..."):
+                try:
+                    collection = chroma_store.get_or_create_collection(book_key)
+                    sample = collection.get(limit=1)
+                    sample_text = sample["documents"][0] if sample.get("documents") else ""
+                    description = rag.generate_description(book_key, sample_text)
+                    chroma_store.set_description(book_key, description)
+                    st.rerun()
+                except Exception as e:
+                    st.error(f"Could not generate a description: {e}")
 
     st.markdown('<p class="eyebrow">Your Question</p>', unsafe_allow_html=True)
     query = st.text_input("", placeholder="What does this book say about...", label_visibility="collapsed")

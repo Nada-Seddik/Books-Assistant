@@ -14,16 +14,13 @@ leave stale duplicate chunks behind.
 """
 
 import chromadb
-from typing import Any
 
 CHROMA_DIR = "chroma_db"
 
-# chromadb does not export ClientAPI; use a generic Any annotation to avoid
-# depending on internals of the chromadb package.
-_client: Any | None = None
+_client: chromadb.ClientAPI | None = None
 
 
-def get_client() -> Any:
+def get_client() -> chromadb.ClientAPI:
     global _client
     if _client is None:
         _client = chromadb.PersistentClient(path=CHROMA_DIR)
@@ -37,6 +34,19 @@ def list_indexed_books() -> list[str]:
 
 def get_or_create_collection(book_key: str):
     return get_client().get_or_create_collection(name=book_key)
+
+
+def get_description(book_key: str) -> str:
+    """Return a book's stored description, or '' if none has been set yet."""
+    collection = get_or_create_collection(book_key)
+    return (collection.metadata or {}).get("description", "")
+
+
+def set_description(book_key: str, description: str) -> None:
+    """Store a short description for a book, held as collection metadata
+    rather than as a chunk — so it never shows up as retrieved context."""
+    collection = get_or_create_collection(book_key)
+    collection.modify(metadata={"description": description})
 
 
 def build_store_for_book(book_key: str, chunks: list[dict], embeddings: list[list[float]]) -> None:

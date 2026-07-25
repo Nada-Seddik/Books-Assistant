@@ -38,6 +38,15 @@ Question: {query}
 
 Answer:"""
 
+DESCRIPTION_PROMPT_TEMPLATE = """In 2-3 sentences, describe what the book "{book_name}" is about, \
+based on this excerpt from its opening:
+
+{sample_text}
+
+Description:"""
+
+DESCRIPTION_SAMPLE_WORDS = 400  # how much of the book's opening text to sample
+
 
 def build_prompt(context_package: dict, book_name: str) -> str:
     return PROMPT_TEMPLATE.format(
@@ -47,7 +56,7 @@ def build_prompt(context_package: dict, book_name: str) -> str:
     )
 
 
-def generate_answer(prompt: str) -> str:
+def _call_llm(prompt: str) -> str:
     if not OPENROUTER_API_KEY:
         raise ValueError(
             "OPENROUTER_API_KEY is not set. Provide it via a local .env "
@@ -65,3 +74,19 @@ def generate_answer(prompt: str) -> str:
     )
     response.raise_for_status()
     return response.json()["choices"][0]["message"]["content"].strip()
+
+
+def generate_answer(prompt: str) -> str:
+    return _call_llm(prompt)
+
+
+def generate_description(book_name: str, sample_text: str) -> str:
+    """Generate a short blurb for a book from a sample of its opening text.
+
+    Called once per book, right after indexing, and the result is stored
+    as Chroma collection metadata (see 05_create_chroma_store.py) rather
+    than regenerated on every view.
+    """
+    sample = " ".join(sample_text.split()[:DESCRIPTION_SAMPLE_WORDS])
+    prompt = DESCRIPTION_PROMPT_TEMPLATE.format(book_name=book_name, sample_text=sample)
+    return _call_llm(prompt)
