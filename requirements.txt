@@ -4,3 +4,4 @@ sentence-transformers
 pypdf
 requests
 python-dotenv
+pysqlite3-binary; platform_system == "Linux"

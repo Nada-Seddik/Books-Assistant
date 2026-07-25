@@ -48,9 +48,10 @@ rag = importlib.import_module("07_prompting")
 # (used when deployed). Wrapped in try/except since st.secrets raises if
 # no secrets.toml exists at all (e.g. running locally without one).
 try:
-    if not rag.OPENROUTER_API_KEY:
-        rag.OPENROUTER_API_KEY = st.secrets.get("OPENROUTER_API_KEY", "")
-        rag.OPENROUTER_MODEL = st.secrets.get("OPENROUTER_MODEL", rag.OPENROUTER_MODEL)
+    if not getattr(rag, "OPENROUTER_API_KEY", None):
+        setattr(rag, "OPENROUTER_API_KEY", st.secrets.get("OPENROUTER_API_KEY", ""))
+        # preserve existing model value if secrets don't provide one
+        setattr(rag, "OPENROUTER_MODEL", st.secrets.get("OPENROUTER_MODEL", getattr(rag, "OPENROUTER_MODEL", None)))
 except Exception:
     pass
 
