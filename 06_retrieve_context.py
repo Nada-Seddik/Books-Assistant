@@ -13,10 +13,18 @@ another numbered file (whose names, starting with digits, aren't valid
 Python import targets) — streamlit_app.py wires the stages together instead.
 """
 
-RETRIEVAL_K = 5
-MAX_CONTEXT_CHUNKS = 3
-MAX_CHUNKS_PER_DOCUMENT = 1
-WORD_BUDGET = 150
+RETRIEVAL_K = 8
+MAX_CONTEXT_CHUNKS = 4
+# Note: in this project, one uploaded file == one document_id. This cap
+# limits how many chunks from the SAME document can appear in one
+# context package. It must be >= MAX_CONTEXT_CHUNKS for single-file
+# books (the common case) — otherwise, for a book with only one source
+# file, this silently caps the entire context at whatever this number
+# is, regardless of MAX_CONTEXT_CHUNKS. Kept as a separate setting only
+# in case a book is split across several files and you want to force
+# diversity across them.
+MAX_CHUNKS_PER_DOCUMENT = 4
+WORD_BUDGET = 250
 
 
 def build_context_package(
