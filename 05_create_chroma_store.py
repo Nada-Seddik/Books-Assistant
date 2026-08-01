@@ -33,7 +33,18 @@ def list_indexed_books() -> list[str]:
 
 
 def get_or_create_collection(book_key: str):
-    return get_client().get_or_create_collection(name=book_key)
+    # hnsw:space="cosine" pairs with the normalized embeddings from
+    # 04_vector_representation.py, so collection.query() distances are
+    # always (1 - cosine_similarity), in a fixed [0, 2] range. Without this,
+    # Chroma defaults to squared L2 on raw (non-unit-length) vectors, whose
+    # scale depends on the embedding model and isn't safe to threshold on.
+    # NOTE: this only applies to collections created from now on — any
+    # collection created before this change was built with the old default
+    # space and must be deleted and re-indexed for the threshold in
+    # 06_retrieve_context.py to be meaningful (delete_book() + re-upload).
+    return get_client().get_or_create_collection(
+        name=book_key, metadata={"hnsw:space": "cosine"}
+    )
 
 
 def get_description(book_key: str) -> str:

@@ -15,6 +15,14 @@ Python import targets) — streamlit_app.py wires the stages together instead.
 
 RETRIEVAL_K = 8
 MAX_CONTEXT_CHUNKS = 4
+# Cosine distance is (1 - cosine_similarity), so 0 = identical, 2 = opposite.
+# Chunks with distance above this are treated as "not actually relevant"
+# and dropped, rather than force-fed into the prompt just because they were
+# the closest of the top-k. Tune this using the evaluation notebook: look at
+# the distance of true-positive matches vs. off-topic queries and pick a
+# cutoff that separates them. 0.6 is a reasonable starting point for
+# all-MiniLM-L6-v2 on short factual queries.
+MAX_DISTANCE = 0.6
 # Note: in this project, one uploaded file == one document_id. This cap
 # limits how many chunks from the SAME document can appear in one
 # context package. It must be >= MAX_CONTEXT_CHUNKS for single-file
@@ -35,6 +43,7 @@ def build_context_package(
     max_context_chunks: int = MAX_CONTEXT_CHUNKS,
     max_chunks_per_document: int = MAX_CHUNKS_PER_DOCUMENT,
     word_budget: int = WORD_BUDGET,
+    max_distance: float = MAX_DISTANCE,
 ) -> dict:
     """Retrieve top-k chunks for a query and shape them into a context package."""
     results = collection.query(
@@ -55,6 +64,15 @@ def build_context_package(
         for doc, meta, dist in zip(documents, metadatas, distances)
     ]
     candidates.sort(key=lambda c: c["distance"])  # lower distance = more similar
+
+    # Drop chunks that aren't actually relevant, even if they were in the
+    # top-k. Without this, a query about something outside the book still
+    # retrieves its "least bad" nearest neighbors and the LLM gets fed
+    # context that has nothing to do with the question.
+    candidates = [c for c in candidates if c["distance"] <= max_distance]
+
+    if not candidates:
+        return {"query": query, "chunks": [], "context_text": "", "sources": []}
 
     selected = []
     per_document_count: dict[str, int] = {}

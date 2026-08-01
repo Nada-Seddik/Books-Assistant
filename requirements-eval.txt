@@ -1,0 +1,6 @@
+# Only needed to run evaluation.ipynb (retrieval method comparison).
+# Not needed by the deployed Streamlit app — keep out of requirements.txt.
+scikit-learn
+rank_bm25
+matplotlib
+nbformat
