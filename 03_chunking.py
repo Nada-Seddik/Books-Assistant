@@ -1,15 +1,4 @@
-"""
-03_chunking.py
-
-Word-based sliding-window chunking, unchanged from the original project.
-chunk_id is now a string (e.g. "the_art_of_war_0_3") instead of a plain
-integer, since Chroma requires string IDs and a book-scoped, globally
-unique ID lets multiple books share one physical vector store safely.
-"""
-
-
 def chunk_text(text: str, chunk_size: int = 120, overlap: int = 30) -> list[str]:
-    """Split text into overlapping word-based chunks."""
     words = text.split()
     if not words:
         return []
@@ -27,7 +16,6 @@ def chunk_text(text: str, chunk_size: int = 120, overlap: int = 30) -> list[str]
 
 
 def build_chunks(documents: list[dict], chunk_size: int = 120, overlap: int = 30) -> list[dict]:
-    """Chunk every document into rows ready for embedding and storage."""
     rows = []
     for doc in documents:
         for i, chunk in enumerate(chunk_text(doc["text"], chunk_size=chunk_size, overlap=overlap)):

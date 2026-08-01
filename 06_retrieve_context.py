@@ -1,18 +1,3 @@
-"""
-06_retrieve_context.py
-
-Queries a book's Chroma collection and builds a filtered, word-budgeted,
-source-labeled context package — the same shaping logic the original
-project used (cap chunks per source document, stop once the word budget
-is filled), now applied to Chroma's nearest-neighbor results instead of
-an in-memory hybrid score.
-
-Takes a pre-computed query embedding rather than importing
-04_vector_representation itself, so this module doesn't need to import
-another numbered file (whose names, starting with digits, aren't valid
-Python import targets) — streamlit_app.py wires the stages together instead.
-"""
-
 RETRIEVAL_K = 8
 MAX_CONTEXT_CHUNKS = 4
 # Cosine distance is (1 - cosine_similarity), so 0 = identical, 2 = opposite.

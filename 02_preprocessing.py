@@ -1,29 +1,8 @@
-"""
-02_preprocessing.py
-
-Text cleanup applied to raw extracted text before chunking: strips
-repeated running headers/footers, standalone page numbers, rejoins
-words hyphenated across a line break, and strips raw glyph-code
-artifacts that some PDFs produce.
-
-Unchanged from the original project except for _strip_glyph_artifacts:
-some PDFs (commonly ones with decorative heading fonts) lack a proper
-ToUnicode map for certain characters, so pypdf falls back to emitting
-raw glyph IDs like "/G53/G75/G6E" instead of the actual text ("Sun").
-This is a PDF-encoding problem, not something chunking or retrieval can
-work around, so it's cleaned up here, upstream of everything else.
-"""
-
 import re
 from collections import Counter
 
 
 def _strip_glyph_artifacts(text: str) -> str:
-    """Remove runs of raw "/GXX" glyph codes left by undecodable PDF fonts.
-
-    A single "/G4B" could theoretically be legitimate text, but three or
-    more in a row is always this extraction artifact, never real prose.
-    """
     return re.sub(r"(?:/G[0-9A-Fa-f]{2}){3,}", " ", text)
 
 
@@ -49,7 +28,6 @@ def _normalize_whitespace(text: str) -> str:
 
 
 def clean_text(raw_text: str) -> str:
-    """Run the full cleanup pipeline on one document's raw extracted text."""
     text = _strip_glyph_artifacts(raw_text)
     text = _dehyphenate(text)
     lines = text.split("\n")
@@ -60,7 +38,6 @@ def clean_text(raw_text: str) -> str:
 
 
 def clean_documents(documents: list[dict]) -> list[dict]:
-    """Apply clean_text to every document's "text" field."""
     for doc in documents:
         doc["text"] = clean_text(doc["text"])
     return documents

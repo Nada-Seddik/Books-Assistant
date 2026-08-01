@@ -1,21 +1,4 @@
-"""
-07_prompting.py
-
-Builds the prompt sent to the LLM and calls OpenRouter's chat completions
-API to generate an answer. Ported from the original project's prompt
-builder; the LLM call itself is new, replacing the local Ollama call with
-OpenRouter, since a deployed Streamlit app can't reach a local Ollama
-server.
-
-Per the project's API key rules: OPENROUTER_API_KEY and OPENROUTER_MODEL
-are read from environment variables here, never hardcoded. They're module
-attributes (not constants pulled inline) specifically so streamlit_app.py
-can overwrite them from st.secrets after import, for deployment, without
-this module needing to know anything about Streamlit.
-"""
-
 import os
-
 import requests
 
 OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY", "")
