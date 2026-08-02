@@ -1,6 +1,7 @@
-# Only needed to run evaluation.ipynb (retrieval method comparison).
-# Not needed by the deployed Streamlit app — keep out of requirements.txt.
-scikit-learn
-rank_bm25
+# Only needed to run the manual, in-depth analysis at the bottom of
+# evaluation.py (charts + distance-distribution plot). NOT needed for the
+# live app anymore: scikit-learn and rank_bm25 moved to requirements.txt,
+# since 06_retrieve_context.py now uses them live, at answer time, for any
+# book whose auto-picked method isn't "embeddings".
 matplotlib
 nbformat

@@ -4,4 +4,6 @@ sentence-transformers
 pypdf
 requests
 python-dotenv
+scikit-learn
+rank_bm25
 pysqlite3-binary; platform_system == "Linux"

@@ -1,4 +1,7 @@
 import os
+import json
+import urllib.error
+import urllib.request
 import requests
 
 OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY", "")
@@ -60,6 +63,31 @@ def _call_llm(prompt: str) -> str:
 
 
 def generate_answer(prompt: str) -> str:
+    return _call_llm(prompt)
+
+
+EVAL_QUESTION_PROMPT_TEMPLATE = """Read the passage below from a book. Write ONE short, natural \
+question a curious reader might ask, whose answer is fully and directly contained in this \
+passage. Do not reference "the passage" or "the text" in your question — ask it the way a \
+real reader would. Return only the question itself, nothing else.
+
+Passage:
+{chunk_text}
+
+Question:"""
+
+
+def generate_eval_question(chunk_text: str) -> str:
+    """Generate a single natural question whose answer lives in `chunk_text`.
+
+    Used by evaluation.generate_synthetic_ground_truth() to auto-build a
+    small test set for a brand-new book with NO manual labeling: the chunk
+    that produced the question becomes that question's "expected" answer,
+    which is what lets recommend_best_method() run automatically right
+    after indexing, instead of requiring a human to hand-write questions
+    first (as the manual analysis in evaluation.py's __main__ section does).
+    """
+    prompt = EVAL_QUESTION_PROMPT_TEMPLATE.format(chunk_text=chunk_text)
     return _call_llm(prompt)
 
 

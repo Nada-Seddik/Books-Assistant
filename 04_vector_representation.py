@@ -1,4 +1,4 @@
-from sentence_transformers import SentenceTransformer
+from sentence_transformers import SentenceTransformer  # type: ignore[import]
 
 EMBEDDING_MODEL_NAME = "all-MiniLM-L6-v2"
 
