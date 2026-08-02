@@ -29,9 +29,28 @@ except ImportError:
 import importlib
 import os
 import sys
+from typing import TYPE_CHECKING
 
-import streamlit as st
-from dotenv import load_dotenv
+if TYPE_CHECKING:
+    # Help static analyzers/linters resolve streamlit in editor environments
+    import streamlit as st  # type: ignore
+else:
+    try:
+        import streamlit as st
+    except ImportError as e:
+        raise ImportError(
+            "The 'streamlit' package is required to run this app. "
+            "Please install it (e.g. `pip install streamlit`) and try again."
+        ) from e
+# dotenv isn't always installed in every environment (e.g. some CI or
+# deployment setups). Fall back to a no-op loader if unavailable so
+# the rest of the app can continue to run. Use ImportError specifically
+# to avoid static analyzers flagging a missing package.
+try:
+    from dotenv import load_dotenv  # type: ignore
+except ImportError:
+    def load_dotenv(*args, **kwargs):
+        return False
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 load_dotenv()  # loads OPENROUTER_API_KEY/OPENROUTER_MODEL from a local .env, if present
@@ -48,9 +67,10 @@ rag = importlib.import_module("07_prompting")
 # (used when deployed). Wrapped in try/except since st.secrets raises if
 # no secrets.toml exists at all (e.g. running locally without one).
 try:
-    if not rag.OPENROUTER_API_KEY:
-        rag.OPENROUTER_API_KEY = st.secrets.get("OPENROUTER_API_KEY", "")
-        rag.OPENROUTER_MODEL = st.secrets.get("OPENROUTER_MODEL", rag.OPENROUTER_MODEL)
+    if not getattr(rag, "OPENROUTER_API_KEY", ""):
+        setattr(rag, "OPENROUTER_API_KEY", st.secrets.get("OPENROUTER_API_KEY", ""))
+    if not getattr(rag, "OPENROUTER_MODEL", ""):
+        setattr(rag, "OPENROUTER_MODEL", st.secrets.get("OPENROUTER_MODEL", getattr(rag, "OPENROUTER_MODEL", "")))
 except Exception:
     pass
 
