@@ -43,7 +43,6 @@ vector_representation = importlib.import_module("04_vector_representation")
 chroma_store = importlib.import_module("05_create_chroma_store")
 retrieve_context = importlib.import_module("06_retrieve_context")
 rag = importlib.import_module("07_prompting")
-evaluation = importlib.import_module("evaluation")
 
 # If no API key was set via a local .env, fall back to Streamlit secrets
 # (used when deployed). Wrapped in try/except since st.secrets raises if
@@ -238,37 +237,13 @@ def index_book(book_name: str, uploaded_files) -> None:
         # button for books that end up without one.
         pass
 
-    try:
-        # Auto-pick the best retrieval method for THIS book. A general
-        # embedding model isn't equally good on every book — a small,
-        # distinctively-worded text can favor keyword search (BM25) over
-        # pure embeddings (see evaluation.py). Rather than hard-coding one
-        # method for every book, this runs a quick, synthetic evaluation
-        # (generated questions, not manually written ones) right after
-        # indexing, and stores whichever method won for THIS book, so
-        # answer_question() below uses the right one automatically.
-        best_method, scores = evaluation.recommend_best_method(
-            book_key, embed_query_fn=vector_representation.embed_query
-        )
-        chroma_store.set_retrieval_method(book_key, best_method)
-        if scores:
-            chroma_store.set_retrieval_scores(book_key, scores)
-    except Exception:
-        # If auto-evaluation fails for any reason, fall back to the safe
-        # default rather than blocking indexing -- get_retrieval_method()
-        # already returns "embeddings" for any book with no method stored.
-        pass
-
 
 def answer_question(book_key: str, query: str) -> dict:
     cached_chroma_client()  # ensure the persistent client is initialized
     collection = chroma_store.get_or_create_collection(book_key)
 
     query_embedding = vector_representation.embed_query(query)
-    method = chroma_store.get_retrieval_method(book_key)  # set once, at indexing time
-    context_package = retrieve_context.build_context_package(
-        collection, query, query_embedding, method=method
-    )
+    context_package = retrieve_context.build_context_package(collection, query, query_embedding)
 
     prompt = rag.build_prompt(context_package, book_name=book_key)
     answer_text = rag.generate_answer(prompt)
@@ -340,11 +315,6 @@ def main() -> None:
 
     st.markdown('<p class="eyebrow">Choose a Book</p>', unsafe_allow_html=True)
     book_key = st.selectbox("", indexed_books, label_visibility="collapsed")
-
-    active_method = chroma_store.get_retrieval_method(book_key)
-    method_labels = {"embeddings": "Embeddings", "tfidf": "TF-IDF", "bm25": "BM25", "hybrid": "Hybrid"}
-    st.caption(f"🔍 Retrieval method for this book: **{method_labels.get(active_method, active_method)}** "
-               f"(auto-selected at indexing time)")
 
     description = chroma_store.get_description(book_key)
     if description:
